@@ -1,0 +1,13 @@
+{
+    "name": "teolaz/elementor-login-protected-sections",
+    "description": "This plugin allows to have a protection layer in Elementor content and show it only if a visitor is logged in or logged out from your WP site.",
+    "license": "GPL-3.0-or-later",
+    "require": {
+        "yahnis-elsts/plugin-update-checker": "^v4.4"
+    },
+    "autoload": {
+        "psr-4": {
+            "Teolaz\\ELPS\\": "src/ELPS/"
+        }
+    }
+}
