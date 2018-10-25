@@ -8,30 +8,39 @@
 
 namespace Teolaz\ELPS;
 
+use \Elementor\Element_Section;
 
 class Plugin {
 	
 	public function __construct() {
-		/* decide whether to enable the plugin or not */
-		if ( ! $this->checkElementorExistence() ) {
-			return;
-		}
-		
 		/* check for updates */
 		$this->checkForUpdates();
 		
-		/* add Elementor backend hooks */
-		add_action( 'elementor/element/after_section_end', [ $this, 'addBackendControl' ], 10, 3 );
+		add_action( 'plugins_loaded', function () {
+			
+			/* register activation hooks to control if Elementor is present, deactivate the plugin otherwise */
+			if ( ! $this->checkElementorExistence() ) {
+				add_action( 'admin_notices', [ $this, 'goOnBootstrapFailMode' ] );
+				add_action( 'admin_init', function () {
+					deactivate_plugins( TEOLAZ_ELPS_MAIN_FILE );
+				} );
+				
+				return;
+			}
+			/* register hooks only on elementor init action */
+			add_action( 'elementor/init', [ $this, 'addElementorInitHooks' ] );
+			load_plugin_textdomain( 'teolaz-elps' );
+		} );
 		
-		/* add Elementor frontend hooks */
-		$sectionType = \Elementor\Element_Section::get_type();
-		add_action( "elementor/frontend/{$sectionType}/before_render", [ $this, 'addFrontendBeforeRenderHook' ] );
-		add_action( "elementor/frontend/{$sectionType}/after_render", [ $this, 'addFrontendAfterRenderHook' ] );
+		
 	}
 	
+	/**
+	 * Check existence just controlling launched action
+	 * @return bool
+	 */
 	protected function checkElementorExistence() {
 		if ( ! did_action( 'elementor/loaded' ) ) {
-			add_action( 'admin_notices', [ $this, 'goOnBootstrapFailMode' ] );
 			
 			return false;
 		}
@@ -46,9 +55,22 @@ class Plugin {
 	protected function checkForUpdates() {
 		\Puc_v4_Factory::buildUpdateChecker(
 			'https://github.com/teolaz/elementor-login-protected-sections',
-			dirname( __FILE__ ) . '/../../elementor-login-protected-sections.php',
+			TEOLAZ_ELPS_MAIN_FILE,
 			'elementor-login-protected-sections'
 		);
+	}
+	
+	/**
+	 * Add Elementor main hooks
+	 */
+	public function addElementorInitHooks() {
+		/* add Elementor backend hooks */
+		add_action( 'elementor/element/after_section_end', [ $this, 'addBackendControl' ], 10, 3 );
+		
+		/* add Elementor frontend hooks */
+		$sectionType = Element_Section::get_type();
+		add_action( "elementor/frontend/{$sectionType}/before_render", [ $this, 'addFrontendBeforeRenderHook' ] );
+		add_action( "elementor/frontend/{$sectionType}/after_render", [ $this, 'addFrontendAfterRenderHook' ] );
 	}
 	
 	/**
@@ -93,16 +115,24 @@ class Plugin {
 		echo '<div class="error"><p>' . $message . '</p></div>';
 	}
 	
+	/**
+	 * Add section under Advanced Tab of Section element
+	 */
 	public function addBackendControl( $element, $section_id, $arg ) {
 		/** @var \Elementor\Element_Base $element */
 		if (
-			\Elementor\Element_Section::get_type() == $element->get_name() &&
+			Element_Section::get_type() == $element->get_name() &&
 			'_section_responsive' == $section_id
 		) {
 			LoginProtectedContent::registerSection( $element );
 		}
 	}
 	
+	/**
+	 * Start removing content if needed
+	 *
+	 * @param $element
+	 */
 	public function addFrontendBeforeRenderHook( $element ) {
 		/** @var \Elementor\Element_Base $element */
 		if ( LoginProtectedContent::isProtectionEnabled( $element ) ) {
@@ -110,6 +140,11 @@ class Plugin {
 		}
 	}
 	
+	/**
+	 * End removing content if needed
+	 *
+	 * @param $element
+	 */
 	public function addFrontendAfterRenderHook( $element ) {
 		/** @var \Elementor\Element_Base $element */
 		if ( LoginProtectedContent::isProtectionEnabled( $element ) ) {

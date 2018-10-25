@@ -1,6 +1,5 @@
 === Elementor Login Protected Sections ===
 Contributors: teolaz
-Donate link: http://example.com/
 Tags: elementor, login, section
 Requires at least: 4.6
 Tested up to: 4.9.8
@@ -62,3 +61,6 @@ So, the only hook I had in mind was to incercept a section before printing it an
 
 = 1.0.0 =
 * First fresh released version
+
+= 1.0.1 =
+* Fix on activation hooks, need to check if Elementor is present and working
